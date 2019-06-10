@@ -71,7 +71,7 @@
   ; copy bg tile data
   ld hl, $9000
   ld de, data_tile1_bin
-  ld b, $70
+  ld b, $b0
   call cp_de_to_hl
 
   ; clear map0
@@ -244,16 +244,20 @@
   and $0f
   cp 10
   jr nc, l15   ; a ∈ [0..9]
-  add a, 2     ; a ∈ [2..11]
   ld d, a      ; d = tiles to draw before gap
   ld a, 18
   sub a, d
-  sub a, 5
+  sub a, 9
   ld b, a      ; b = tiles to draw after gap
   ld c, 3      ; c = 1 xor 2 (flipper)
   push bc
-  ld b, d      ; b = tiles to draw before gap
+
+  ld a, d      ;
   ld de, $ffdf ; -0x21 = 1 row + 1 tile
+  and a
+  jr z, l1     ; skip if tiles to draw before = 0
+
+  ld b, a      ; b = tiles to draw before gap
   ld a, 1      ; wall tiles = {1, 2}
 .l13
   ldi (hl), a
@@ -264,6 +268,18 @@
   dec b
   jr nz l13
 
+.l1            ; draw top of pipe
+  ld a, 3
+  ldi (hl), a
+  inc a
+  ld (hl), a
+  add hl, de
+  inc a
+  ldi (hl), a
+  inc a
+  ld (hl), a
+  add hl, de
+
   ld b, 5      ; clear the next 5 rows
   xor a
 .l0
@@ -273,8 +289,21 @@
   dec b
   jr nz l0
 
-  ld de, $ffdf ; -0x21 = 1 row + 1 tile
+  ld a, 7      ; draw bottom of pipe
+  ldi (hl), a
+  inc a
+  ld (hl), a
+  add hl, de
+  inc a
+  ldi (hl), a
+  inc a
+  ld (hl), a
+  add hl, de
+
   pop bc       ; b = tiles to draw after gap, c = 1 xor 2 (flipper)
+  ld a, b
+  and a
+  ret z        ; return if tiles to draw after == 0
   ld a, 1
 .l14
   ldi (hl), a
