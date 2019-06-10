@@ -124,6 +124,7 @@
   ret z        ; return if ((keys_down & KEY_A) == 0)
   ld a, 1
   ldh ($82), a ; game_state = 1
+  call handle_jump ; start the game with a hop
   ret
 .update_state_1 ; play
   call handle_jump
