@@ -264,8 +264,8 @@
   cp 11
   jr nc, l15
   add a, 7
-  ld c, a  ; start of gap
-  ld de, $ffe0
+  ld c, a      ; start of gap
+  ld de, $ffe0 ; -20
   ld b, 18
 .l13
   ld a, 1
@@ -274,7 +274,7 @@
   ld a, b
   cp c
   jr nz, l14
-  sub a, 4
+  sub a, 3     ; extra dec b at the end
   ld b, a
   xor a
   ld (hl), a
@@ -285,10 +285,6 @@
   add hl, de
   ld (hl), a
   add hl, de
-  ld a, b
-  and a
-  ret z
-  jr l13
 .l14
   dec b
   jr nz, l13
