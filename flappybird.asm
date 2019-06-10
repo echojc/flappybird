@@ -169,7 +169,10 @@
 .l4
   cp $3a
   ret nz       ; } else if (REG_SCX % 0x40 == 0x3a) {
-  ldh a, ($c0) ; score_bcd
+  ld a, (hl)
+  and a
+  ret z        ;   if (current wall exists (tile is not empty)) {
+  ldh a, ($c0) ;     score_bcd
   inc a
   daa
   ldh ($c0), a
@@ -179,7 +182,8 @@
   inc a
   daa
   ldh ($c1), a
-  ret          ; }
+  ret          ;   }
+               ; }
 
 .handle_jump
   ldh a, ($81) ; keys_down
