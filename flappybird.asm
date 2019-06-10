@@ -75,23 +75,15 @@
   call cp_de_to_hl
 
   ; clear map0
+  xor a
   ld hl, $9800
   ld bc, $0400
-  xor a
-.l2
-  ldi (hl), a
-  dec c
-  jr nz, l2
-  dec b
-  jr nz, l2
+  call set_hl_wide
 
   ; clear sprites
   ld hl, $fe00
   ld b, $a0
-.l4
-  ldi (hl), a
-  dec b
-  jr nz, l4
+  call set_hl
 
   ; init bird sprites
   ld hl, $fe00
@@ -285,6 +277,20 @@
   inc de
   dec b
   jr nz, cp_de_to_hl
+  ret
+
+.set_hl
+  ldi (hl), a
+  dec b
+  jr nz, set_hl
+  ret
+
+.set_hl_wide
+  ldi (hl), a
+  dec c
+  jr nz, set_hl_wide
+  dec b
+  jr nz, set_hl_wide
   ret
 
 <tile0.bin
