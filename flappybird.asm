@@ -248,7 +248,7 @@
   ld d, a      ; d = tiles to draw before gap
   ld a, 18
   sub a, d
-  sub a, 9
+  sub a, 8
   ld b, a      ; b = tiles to draw after gap
   ld c, 3      ; c = 1 xor 2 (flipper)
   push bc
@@ -281,7 +281,7 @@
   ld (hl), a
   add hl, de
 
-  ld b, 5      ; clear the next 5 rows
+  ld b, 4      ; clear the next 4 rows
   xor a
 .l0
   ldi (hl), a
