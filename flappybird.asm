@@ -61,11 +61,13 @@
   ldh ($f4), a ; is_vblank
   ld a, $20
   ldh ($e0), a ; next_col_offset (cycles $20,$28,$30,$38)
+  ld a, 5
+  ldh ($91), a ; bird_anim_counter
 
   ; copy sprite tile data
   ld hl, $8000
   ld de, data_tile0_bin
-  ld b, $40
+  ld b, $80
   call cp_de_to_hl
 
   ; copy bg tile data
@@ -88,7 +90,7 @@
   ; init bird sprites
   ld hl, $fe00
   ld de, data_sprite_bin
-  ld b, $10
+  ld b, $14
   call cp_de_to_hl
 
   ; enable display
@@ -101,6 +103,7 @@
 
 .loop
   call read_keys
+  call animate_bird
   call run_state
 .halt
   halt
@@ -184,6 +187,8 @@
   add a, 8
   ld ($fe08), a
   ld ($fe0c), a
+  sub a, 3
+  ld ($fe10), a
   ret
 
 .read_keys
@@ -314,6 +319,22 @@
   add hl, de
   dec b
   jr nz, l14
+  ret
+
+.animate_bird
+  ldh a, ($91) ; bird_anim_counter
+  dec a
+  jr nz, l3
+  ld a, ($fe12) ; sprite[4].tile
+  inc a         ; a ∈ [4..7]
+  cp 8
+  jr nz, l2
+  ld a, 4
+.l2
+  ld ($fe12), a
+  ld a, 5
+.l3
+  ldh ($91), a
   ret
 
 .cp_de_to_hl
