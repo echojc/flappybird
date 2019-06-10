@@ -249,11 +249,10 @@
   ldh ($f3), a ; z=a
   ld c, a
   srl c        ; z >> 1
-  ld d, b
-  sla d        ; t << 1
-  xor b
   xor c
-  xor d
+  xor b
+  sla b        ; t << 1
+  xor b
   ldh ($f0), a
   ret
 
