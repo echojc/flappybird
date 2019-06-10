@@ -39,9 +39,10 @@
 
   ; setup palettes
   ld a, $e4
-  ldh ($47), a
-  ldh ($48), a
-  ldh ($49), a
+  ldh ($47), a ; REG_BGP  3_2_1_0
+  ldh ($48), a ; REG_OBP0 3_2_1_0
+  ld a, $c4
+  ldh ($49), a ; REG_OBP1 3_0_1_0
 
   ; set up scxy
   xor a
@@ -92,15 +93,11 @@
   dec b
   jr nz, l4
 
-  ; init bird sprite
+  ; init bird sprites
   ld hl, $fe00
-  ld a, 88
-  ldi (hl), a
-  ld a, 84
-  ldi (hl), a
-  xor a
-  ldi (hl), a
-  ld (hl), a
+  ld de, data_sprite_bin
+  ld b, $10
+  call cp_de_to_hl
 
   ; enable display
   ld a, $83
@@ -174,8 +171,7 @@
   sra b
   sra b
   sra b ; use v/8
-  ld hl, $fe00 ; sprite[0].y
-  ld a, (hl)
+  ld a, ($fe00); sprite[0].y
   add a, b     ; sprite[0].y + v/8
   cp 16
   jr nc, l9    ; if (y < 16) {
@@ -184,13 +180,17 @@
   ld a, 16     ;   y = 16
   jr l8        ; }
 .l9
-  cp 152       ; else if (y >= 152) {
+  cp 144       ; else if (y >= 144) {
   jr c, l8
   xor a
   ldh ($90), a ;   v = 0
-  ld a, 152    ;   y = 152
+  ld a, 144    ;   y = 144
 .l8            ; }
-  ld (hl), a
+  ld ($fe00), a
+  ld ($fe04), a
+  add a, 8
+  ld ($fe08), a
+  ld ($fe0c), a
   ret
 
 .read_keys
@@ -289,3 +289,4 @@
 
 <tile0.bin
 <tile1.bin
+<sprite.bin
