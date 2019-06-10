@@ -62,16 +62,16 @@
   ld a, $20
   ldh ($e0), a ; next_col_offset (cycles $20,$28,$30,$38)
 
-  ; copy tile data
+  ; copy sprite tile data
   ld hl, $8000
   ld de, data_tile0_bin
   ld b, $40
   call cp_de_to_hl
 
-  ; copy more tile data
+  ; copy bg tile data
   ld hl, $9000
   ld de, data_tile1_bin
-  ld b, $20
+  ld b, $70
   call cp_de_to_hl
 
   ; clear map0
