@@ -139,7 +139,11 @@
   inc a
   ldh ($43), a
   and $3f
-  ret nz       ; return if REG_SCX % 40 != 0
+  cp 32
+  ret nz       ; return if REG_SCX % 0x40 != 32
+               ; since drawing wall tiles is expensive, we render it
+               ; on a frame that doesn't need collision detection, which
+               ; is also expensive
   ldh a, ($e0) ; next_col_offset
   ld l, a
   add a, $08
