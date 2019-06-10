@@ -169,18 +169,18 @@
   sra b ; use v/8
   ld a, ($fe00); sprite[0].y
   add a, b     ; sprite[0].y + v/8
-  cp 15
-  jr nc, l9    ; if (y < 15) {
+  cp 14
+  jr nc, l9    ; if (y < 14) {
   xor a
   ldh ($90), a ;   v = 0
-  ld a, 15     ;   y = 15
+  ld a, 14     ;   y = 14
   jr l8        ; }
 .l9
-  cp 147       ; else if (y >= 147) {
+  cp 146       ; else if (y >= 146) {
   jr c, l8
   xor a
   ldh ($90), a ;   v = 0
-  ld a, 147    ;   y = 147
+  ld a, 146    ;   y = 146
 .l8            ; }
   ld ($fe00), a
   ld ($fe04), a
