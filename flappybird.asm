@@ -75,13 +75,13 @@
 
   ; clear map0
   ld hl, $9800
-  ld bc, $0004
+  ld bc, $0400
   xor a
 .l2
   ldi (hl), a
-  dec b
-  jr nz, l2
   dec c
+  jr nz, l2
+  dec b
   jr nz, l2
 
   ; clear sprites
