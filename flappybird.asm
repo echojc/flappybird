@@ -64,24 +64,14 @@
   ; copy tile data
   ld hl, $8000
   ld de, data_tile0_bin
-  ld b, $10
-.l0
-  ld a, (de)
-  ldi (hl), a
-  inc de
-  dec b
-  jr nz, l0
+  ld b, $40
+  call cp_de_to_hl
 
   ; copy more tile data
   ld hl, $9000
   ld de, data_tile1_bin
   ld b, $20
-.l1
-  ld a, (de)
-  ldi (hl), a
-  inc de
-  dec b
-  jr nz, l1
+  call cp_de_to_hl
 
   ; clear map0
   ld hl, $9800
@@ -287,6 +277,14 @@
 .l14
   dec b
   jr nz, l13
+  ret
+
+.cp_de_to_hl
+  ld a, (de)
+  ldi (hl), a
+  inc de
+  dec b
+  jr nz, cp_de_to_hl
   ret
 
 <tile0.bin
