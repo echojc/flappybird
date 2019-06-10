@@ -54,6 +54,8 @@
   ldh ($81), a ; keys_down
   ldh ($82), a ; game_state
   ldh ($90), a ; bird_v (positive = down)
+  ldh ($c0), a ; score_bcd_lo
+  ldh ($c1), a ; score_bcd_hi
   ldh ($f0), a ; rng_state
   ldh ($f1), a ; rng_state_1
   ldh ($f2), a ; rng_state_2
@@ -145,8 +147,8 @@
   inc a
   ldh ($43), a
   and $3f
-  cp 32
-  ret nz       ; return if REG_SCX % 0x40 != 32
+  cp $20
+  jr nz, l4    ; if (REG_SCX % 0x40 == 0x20) {
                ; since drawing wall tiles is expensive, we render it
                ; on a frame that doesn't need collision detection, which
                ; is also expensive
@@ -161,6 +163,20 @@
   ld h, $9a
   call draw_wall
   ret
+.l4
+  cp $3a
+  ret nz       ; } else if (REG_SCX % 0x40 == 0x3a) {
+  ldh a, ($c0) ; score_bcd
+  inc a
+  daa
+  ldh ($c0), a
+  ret nc
+  ccf
+  ldh a, ($c1)
+  inc a
+  daa
+  ldh ($c1), a
+  ret          ; }
 
 .handle_jump
   ldh a, ($81) ; keys_down
