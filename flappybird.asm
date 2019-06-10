@@ -76,6 +76,12 @@
   ld b, $b0
   call cp_de_to_hl
 
+  ; copy shared tile data
+  ld hl, $8800
+  ld de, data_tile2_bin
+  ld bc, $0200
+  call cp_de_to_hl_wide
+
   ; clear map0
   xor a
   ld hl, $9800
@@ -349,6 +355,16 @@
   jr nz, cp_de_to_hl
   ret
 
+.cp_de_to_hl_wide
+  ld a, (de)
+  ldi (hl), a
+  inc de
+  dec c
+  jr nz, cp_de_to_hl_wide
+  dec b
+  jr nz, cp_de_to_hl_wide
+  ret
+
 .set_hl
   ldi (hl), a
   dec b
@@ -365,4 +381,5 @@
 
 <tile0.bin
 <tile1.bin
+<tile2.bin
 <sprite.bin
