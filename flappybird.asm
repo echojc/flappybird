@@ -245,11 +245,21 @@
   cp 10
   jr nc, l15   ; a ∈ [0..9]
   add a, 2     ; a ∈ [2..11]
-  ld b, a      ; b = number of tiles to draw before gap
-  ld de, $ffe0 ; -20 = 1 row
-  ld a, 1      ; wall tile
+  ld d, a      ; d = tiles to draw before gap
+  ld a, 18
+  sub a, d
+  sub a, 5
+  ld b, a      ; b = tiles to draw after gap
+  ld c, 3      ; c = 1 xor 2 (flipper)
+  push bc
+  ld b, d      ; b = tiles to draw before gap
+  ld de, $ffdf ; -0x21 = 1 row + 1 tile
+  ld a, 1      ; wall tiles = {1, 2}
 .l13
+  ldi (hl), a
+  xor c
   ld (hl), a
+  xor c
   add hl, de
   dec b
   jr nz l13
@@ -257,22 +267,24 @@
   ld b, 5      ; clear the next 5 rows
   xor a
 .l0
+  ldi (hl), a
   ld (hl), a
   add hl, de
   dec b
   jr nz l0
 
-  ld de, $ffe0 ; -20 = 1 row
-  ld bc, $67e0 ; adding this to hl will *not* overflow after final row
+  ld de, $ffdf ; -0x21 = 1 row + 1 tile
+  pop bc       ; b = tiles to draw after gap, c = 1 xor 2 (flipper)
   ld a, 1
 .l14
+  ldi (hl), a
+  xor c
   ld (hl), a
-  push hl
-  add hl, bc
-  pop hl
-  ret nc       ; this was the last row to draw if no overflow
+  xor c
   add hl, de
-  jr l14
+  dec b
+  jr nz, l14
+  ret
 
 .cp_de_to_hl
   ld a, (de)
