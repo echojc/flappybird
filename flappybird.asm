@@ -56,13 +56,12 @@
   ldh ($90), a ; bird_v (positive = down)
   ldh ($c0), a ; score_bcd_lo
   ldh ($c1), a ; score_bcd_hi
+  ldh ($e0), a ; next_col_offset (cycles $00,$08,$10,$18)
   ldh ($f0), a ; rng_state
   ldh ($f1), a ; rng_state_1
   ldh ($f2), a ; rng_state_2
   ldh ($f3), a ; rng_state_3
   ldh ($f4), a ; is_vblank
-  ld a, $20
-  ldh ($e0), a ; next_col_offset (cycles $20,$28,$30,$38)
   ld a, 5
   ldh ($91), a ; bird_anim_counter
 
@@ -143,6 +142,12 @@
   ret
 
 .scroll_screen
+  ldh a, ($e0) ; next_col_offset
+  add a, $08
+  and $1f
+  ld l, a      ; l = (next_col_offset + 8) % 20
+  ld h, $98    ; hl = top left tile of current wall
+
   ldh a, ($43) ; REG_SCX
   inc a
   ldh ($43), a
@@ -152,15 +157,13 @@
                ; since drawing wall tiles is expensive, we render it
                ; on a frame that doesn't need collision detection, which
                ; is also expensive
-  ldh a, ($e0) ; next_col_offset
-  ld l, a
-  add a, $08
-  cp $40
-  jr nz, l16
-  ld a, $20
-.l16
-  ldh ($e0), a
-  ld h, $9a
+  ld a, l
+  ldh ($e0), a ;   next_col_offset = (next_col_offset + 8) % 0x20
+  sub a, $08
+  and $1f
+  add a, $20
+  ld l, a      ;   l = ((next_col_offset - 8) % 0x20) + 0x20
+  ld h, $9a    ;   hl = bottom left tile of next wall to render
   call draw_wall
   ret
 .l4
