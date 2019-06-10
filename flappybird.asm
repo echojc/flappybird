@@ -145,7 +145,7 @@
 .l16
   ldh ($e0), a
   ld h, $9a
-  call populate_map
+  call draw_wall
   ret
 
 .handle_jump
@@ -238,38 +238,41 @@
   ldh ($f0), a
   ret
 
-.populate_map ; hl = source, (9a20..9a3f)
+.draw_wall ; hl: target_col (9a20..9a3f)
 .l15
   call rng_next
   and $0f
-  cp 11
-  jr nc, l15
-  add a, 7
-  ld c, a      ; start of gap
-  ld de, $ffe0 ; -20
-  ld b, 18
+  cp 10
+  jr nc, l15   ; a ∈ [0..9]
+  add a, 2     ; a ∈ [2..11]
+  ld b, a      ; b = number of tiles to draw before gap
+  ld de, $ffe0 ; -20 = 1 row
+  ld a, 1      ; wall tile
 .l13
-  ld a, 1
   ld (hl), a
   add hl, de
-  ld a, b
-  cp c
-  jr nz, l14
-  sub a, 3     ; extra dec b at the end
-  ld b, a
-  xor a
-  ld (hl), a
-  add hl, de
-  ld (hl), a
-  add hl, de
-  ld (hl), a
-  add hl, de
-  ld (hl), a
-  add hl, de
-.l14
   dec b
-  jr nz, l13
-  ret
+  jr nz l13
+
+  ld b, 5      ; clear the next 5 rows
+  xor a
+.l0
+  ld (hl), a
+  add hl, de
+  dec b
+  jr nz l0
+
+  ld de, $ffe0 ; -20 = 1 row
+  ld bc, $67e0 ; adding this to hl will *not* overflow after final row
+  ld a, 1
+.l14
+  ld (hl), a
+  push hl
+  add hl, bc
+  pop hl
+  ret nc       ; this was the last row to draw if no overflow
+  add hl, de
+  jr l14
 
 .cp_de_to_hl
   ld a, (de)
