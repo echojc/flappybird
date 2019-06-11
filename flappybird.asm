@@ -34,18 +34,10 @@
   jr nz, wait_for_vblank
 
   ; disable display
-  ld a, $00
+  xor a
   ldh ($40), a
 
-  ; setup palettes
-  ld a, $e4
-  ldh ($47), a ; REG_BGP  3_2_1_0
-  ldh ($48), a ; REG_OBP0 3_2_1_0
-  ld a, $c4
-  ldh ($49), a ; REG_OBP1 3_0_1_0
-
   ; set up scxy
-  xor a
   ldh ($42), a ; REG_SCY
   ldh ($43), a ; REG_SCX
 
@@ -64,6 +56,13 @@
   ldh ($f4), a ; is_vblank
   ld a, 5
   ldh ($91), a ; bird_anim_counter
+
+  ; setup palettes
+  ld a, $e4
+  ldh ($47), a ; REG_BGP  3_2_1_0
+  ldh ($48), a ; REG_OBP0 3_2_1_0
+  ld a, $c4
+  ldh ($49), a ; REG_OBP1 3_0_1_0
 
   ; copy sprite tile data
   ld hl, $8000
