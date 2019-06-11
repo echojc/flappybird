@@ -68,8 +68,8 @@
   ; copy sprite tile data
   ld hl, $8000
   ld de, data_tile0_bin
-  ld b, $80
-  call cp_de_to_hl
+  ld bc, $0300
+  call cp_de_to_hl_wide
 
   ; copy bg tile data
   ld hl, $9000
@@ -80,8 +80,8 @@
   ; copy shared tile data
   ld hl, $8800
   ld de, data_tile2_bin
-  ld bc, $0200
-  call cp_de_to_hl_wide
+  ld b, $80
+  call cp_de_to_hl
 
   ; clear map0
   xor a
@@ -371,11 +371,8 @@
   dec a
   jr nz, l3
   ld a, ($fe12) ; sprite[4].tile
-  inc a         ; a ∈ [4..7]
-  cp 8
-  jr nz, l2
-  ld a, 4
-.l2
+  inc a         ; a ∈ [80..83]
+  and $83       ; mask
   ld ($fe12), a
   ld a, 5
 .l3
