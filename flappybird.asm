@@ -142,6 +142,8 @@
   ret z        ; return if ((keys_down & KEY_A) == 0)
   ld a, 1
   ldh ($82), a ; game_state = 1
+  ldh ($c2), a ; is_score_updated = true
+  call render_score
   call handle_jump ; start the game with a hop
   ret
 .update_state_1 ; play
@@ -245,26 +247,34 @@
   ret z        ; return if (!is_score_updated)
   xor a
   ldh ($c2), a
-  ld hl, $fe22  ; &sprite[8].tile
+  ld c, a
+  ld hl, $fe22 ; &sprite[8].tile
   ld de, $0004
   ldh a, ($c1)
   ld b, a
   and $f0
   swap a
-  call l4
+  call render_score_set
   ld a, b
   and $0f
-  call l4
+  call render_score_set
   ldh a, ($c0)
   ld b, a
   and $f0
   swap a
-  call l4
+  call render_score_set
   ld a, b
   and $0f
-  call l4
+  call l5    ; always render final digit
   ret
+.render_score_set
+  or c       ; have we rendered a leading non-zero?
+  jr nz, l4
+  ld a, $0a  ; if not, blank all leading zeros
+  jr l5
 .l4
+  ld c, $10  ; set c once we render a non-zero
+.l5
   or $10
   ld (hl), a
   add hl, de
