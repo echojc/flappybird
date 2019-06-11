@@ -48,7 +48,6 @@
   ldh ($90), a ; bird_v (positive = down)
   ldh ($c0), a ; score_bcd_lo
   ldh ($c1), a ; score_bcd_hi
-  ldh ($e0), a ; next_col_offset (cycles $00,$08,$10,$18)
   ldh ($f0), a ; rng_state
   ldh ($f1), a ; rng_state_1
   ldh ($f2), a ; rng_state_2
@@ -56,6 +55,8 @@
   ldh ($f4), a ; is_vblank
   ld a, 5
   ldh ($91), a ; bird_anim_counter
+  ld a, $08
+  ldh ($e0), a ; next_col_offset (cycles $00,$08,$10,$18)
 
   ; setup palettes
   ld a, $e4
@@ -134,6 +135,7 @@
 .run_state_1
   jp update_state_1
 .update_state_0 ; menu
+  call scroll_screen
   ldh a, ($81) ; keys_down
   bit 0, a
   ret z        ; return if ((keys_down & KEY_A) == 0)
@@ -142,41 +144,48 @@
   call handle_jump ; start the game with a hop
   ret
 .update_state_1 ; play
-  call handle_jump
   call scroll_screen
+  call handle_scroll
+  call handle_jump
   ret
 
 .scroll_screen
-  ldh a, ($e0) ; next_col_offset
-  add a, $08
-  and $1f
-  ld l, a      ; l = (next_col_offset + 8) % 20
-  ld h, $98    ; hl = top left tile of current wall
-
   ldh a, ($43) ; REG_SCX
   inc a
   ldh ($43), a
   and $3f
-  cp $20
-  jr nz, l4    ; if (REG_SCX % 0x40 == 0x20) {
-               ; since drawing wall tiles is expensive, we render it
-               ; on a frame that doesn't need collision detection, which
-               ; is also expensive
-  ld a, l
-  ldh ($e0), a ;   next_col_offset = (next_col_offset + 8) % 0x20
-  sub a, $08
+  cp $21       ; if (REG_SCX % 0x40 == 0x21) {
+  ret nz
+  ldh a, ($e0)
+  add a, 8
   and $1f
-  ld l, a      ;   l = ((next_col_offset - 8) % 0x20) + 0x20
-  ld h, $9a    ;   hl = bottom left tile of next wall to render
+  ldh ($e0), a ;   next_col_offset = (next_col_offset + 8) % 0x20
+  ret          ; }
+
+.handle_scroll
+  ldh a, ($43) ; REG_SCX
+  and $3f      ; switch (REG_SCX % 0x40)
+  cp $20
+  jr z, handle_scroll_draw
+  cp $3a
+  jr z, handle_scroll_score
+  ret
+.handle_scroll_draw ; draw wall is expensive, we render on a frame without collision detection
+  ldh a, ($e0)   ; next_col_offset
+  add a, $18     ; draw 3 walls ahead (= 1 behind)
+  and $1f
+  ld l, a
+  ld h, $9a      ; hl = bottom left tile of 3 walls ahead
   call draw_wall
   ret
-.l4
-  cp $3a
-  ret nz       ; } else if (REG_SCX % 0x40 == 0x3a) {
+.handle_scroll_score
+  ldh a, ($e0)   ; next_col_offset
+  ld l, a
+  ld h, $98      ; hl = top left tile of next wall
   ld a, (hl)
   and a
-  ret z        ;   if (current wall exists (tile is not empty)) {
-  ldh a, ($c0) ;     score_bcd
+  ret z          ; return if there is no wall (tile is blank)
+  ldh a, ($c0)   ; score_bcd
   inc a
   daa
   ldh ($c0), a
@@ -186,8 +195,7 @@
   inc a
   daa
   ldh ($c1), a
-  ret          ;   }
-               ; }
+  ret
 
 .handle_jump
   ldh a, ($81) ; keys_down
