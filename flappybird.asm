@@ -189,15 +189,24 @@
   ld a, (hl)
   and a
   ret z          ; return if there is no wall (tile is blank)
+  ldh a, ($c1)
+  ld b, a
+  ldh a, ($c0)
+  cp b
+  jr nz, l6      ; ok to inc if c0 != c1
+  cp $99
+  ret z          ; return if c0 == c1 == $99 (max score)
+.l6
+  ld a, 1
   ldh ($c2), a   ; is_score_updated = true
+  ld b, a
   ldh a, ($c0)   ; score_bcd
-  inc a
+  add a, b       ; using add resets the carry flag for daa
   daa
   ldh ($c0), a
   ret nc
-  ccf
   ldh a, ($c1)
-  inc a
+  add a, b
   daa
   ldh ($c1), a
   ret
