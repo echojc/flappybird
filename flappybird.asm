@@ -48,6 +48,7 @@
   ldh ($90), a ; bird_v (positive = down)
   ldh ($c0), a ; score_bcd_lo
   ldh ($c1), a ; score_bcd_hi
+  ldh ($c2), a ; is_score_updated
   ldh ($f0), a ; rng_state
   ldh ($f1), a ; rng_state_1
   ldh ($f2), a ; rng_state_2
@@ -100,10 +101,10 @@
   ld b, $20
   call set_hl
 
-  ; init bird sprites
+  ; init sprites
   ld hl, $fe00
   ld de, data_sprite_bin
-  ld b, $14
+  ld b, $40
   call cp_de_to_hl
 
   ; enable display
@@ -147,6 +148,7 @@
   call scroll_screen
   call handle_scroll
   call handle_jump
+  call render_score
   ret
 
 .scroll_screen
@@ -185,6 +187,7 @@
   ld a, (hl)
   and a
   ret z          ; return if there is no wall (tile is blank)
+  ldh ($c2), a   ; is_score_updated = true
   ldh a, ($c0)   ; score_bcd
   inc a
   daa
@@ -234,6 +237,40 @@
   ld ($fe0c), a
   sub a, 3
   ld ($fe10), a
+  ret
+
+.render_score
+  ldh a, ($c2)
+  and a
+  ret z        ; return if (!is_score_updated)
+  xor a
+  ldh ($c2), a
+  ld hl, $fe22  ; &sprite[8].tile
+  ld de, $0004
+  ldh a, ($c1)
+  ld b, a
+  and $f0
+  swap a
+  call l4
+  ld a, b
+  and $0f
+  call l4
+  ldh a, ($c0)
+  ld b, a
+  and $f0
+  swap a
+  call l4
+  ld a, b
+  and $0f
+  call l4
+  ret
+.l4
+  or $10
+  ld (hl), a
+  add hl, de
+  xor $30
+  ld (hl), a
+  add hl, de
   ret
 
 .read_keys
