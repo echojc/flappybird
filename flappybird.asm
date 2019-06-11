@@ -73,7 +73,7 @@
   ; copy bg tile data
   ld hl, $9000
   ld de, data_tile1_bin
-  ld b, $b0
+  ld b, $c0
   call cp_de_to_hl
 
   ; copy shared tile data
@@ -91,6 +91,12 @@
   ; clear sprites
   ld hl, $fe00
   ld b, $a0
+  call set_hl
+
+  ; init ground
+  ld a, $0b ; ground sprite
+  ld hl, $9a20
+  ld b, $20
   call set_hl
 
   ; init bird sprites
@@ -160,7 +166,6 @@
   ldh ($e0), a ;   next_col_offset = (next_col_offset + 8) % 0x20
   sub a, $08
   and $1f
-  add a, $20
   ld l, a      ;   l = ((next_col_offset - 8) % 0x20) + 0x20
   ld h, $9a    ;   hl = bottom left tile of next wall to render
   call draw_wall
@@ -208,11 +213,11 @@
   ld a, 14     ;   y = 14
   jr l8        ; }
 .l9
-  cp 146       ; else if (y >= 146) {
+  cp 138       ; else if (y >= 138) {
   jr c, l8
   xor a
   ldh ($90), a ;   v = 0
-  ld a, 146    ;   y = 146
+  ld a, 138    ;   y = 138
 .l8            ; }
   ld ($fe00), a
   ld ($fe04), a
@@ -283,7 +288,7 @@
   cp 10
   jr nc, l15   ; a ∈ [0..9]
   ld d, a      ; d = tiles to draw before gap
-  ld a, 18
+  ld a, 17
   sub a, d
   sub a, 8
   ld b, a      ; b = tiles to draw after gap
