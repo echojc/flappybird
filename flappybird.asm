@@ -28,6 +28,10 @@
   xor a
   ldh ($0f), a
 
+  ; enable display
+  ld a, $80
+  ldh ($40), a
+
 .wait_for_vblank
   ldh a, ($44)
   cp $94
@@ -37,9 +41,38 @@
   xor a
   ldh ($40), a
 
+  ; zero memory
+  ld hl, $8000
+  ld bc, $6000
+.z0
+  ldi (hl), a
+  dec c
+  jr nz, z0
+  dec b
+  jr nz, z0
+  ld hl, $fe00
+.z1
+  ld (hl), a
+  inc l
+  jr nz, z1
+  ld hl, $ff80
+.z2
+  ld (hl), a
+  inc l
+  jr nz, z2
+
+  ; init registers
+  ldh ($05), a ; REG_TIMA
+  ldh ($06), a ; REG_TMA
+  ldh ($07), a ; REG_TAC
+  ldh ($26), a ; REG_SND_CTL
+
   ; set up scxy
   ldh ($42), a ; REG_SCY
   ldh ($43), a ; REG_SCX
+  ldh ($45), a ; REG_LYC
+  ldh ($4a), a ; REG_WY
+  ldh ($4b), a ; REG_WX
 
   ; init variables
   ldh ($80), a ; keys_held
@@ -83,17 +116,6 @@
   ld de, data_tile2_bin
   ld b, $80
   call cp_de_to_hl
-
-  ; clear map0
-  xor a
-  ld hl, $9800
-  ld bc, $0400
-  call set_hl_wide
-
-  ; clear sprites
-  ld hl, $fe00
-  ld b, $a0
-  call set_hl
 
   ; init ground
   ld a, $0b ; ground sprite
