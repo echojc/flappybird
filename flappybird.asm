@@ -155,12 +155,6 @@
   call read_keys
   call animate_bird
   call run_state
-  ;ldh a, ($44)
-  ;cp 93
-  ;jr c, halt
-  ;ld l, a
-  ;ld h, $ff
-  ;inc (hl)
 .halt
   halt
   ldh a, ($f4) ; is_vblank
