@@ -142,6 +142,12 @@
   call read_keys
   call animate_bird
   call run_state
+  ;ldh a, ($44)
+  ;cp 93
+  ;jr c, halt
+  ;ld l, a
+  ;ld h, $ff
+  ;inc (hl)
 .halt
   halt
   ldh a, ($f4) ; is_vblank
@@ -370,11 +376,15 @@
   ret
 
 .draw_wall ; hl: target_col (9a20..9a3f)
-.l15
   call rng_next
   and $0f
-  cp 10
-  jr nc, l15   ; a ∈ [0..9]
+  ld e, a
+  ld d, 0
+  push hl
+  ld hl, data_pipe_lookup_bin
+  add hl, de
+  ld a, (hl)   ; a ∈ [0..9]
+  pop hl
   ld d, a      ; d = tiles to draw before gap
   ld a, 17
   sub a, d
@@ -510,3 +520,4 @@
 <tile2.bin
 <sprite.bin
 <sine_path.bin
+<pipe_lookup.bin
