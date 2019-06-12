@@ -150,6 +150,7 @@
   ld a, $11 ; INT_KEYS, INT_VBLANK
   ldh ($ff), a
   ei
+  jp halt   ; wait for next vblank before starting the game proper
 
 .loop
   call read_keys
