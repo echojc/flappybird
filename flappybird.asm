@@ -79,6 +79,7 @@
   ldh ($81), a ; keys_down
   ldh ($82), a ; game_state
   ldh ($90), a ; bird_v (positive = down)
+  ldh ($92), a ; bird_menu_path_counter
   ldh ($c0), a ; score_bcd_lo
   ldh ($c1), a ; score_bcd_hi
   ldh ($c2), a ; is_score_updated
@@ -158,6 +159,7 @@
 .run_state_1
   jp update_state_1
 .update_state_0 ; menu
+  call animate_sine_path
   call scroll_screen
   ldh a, ($81) ; keys_down
   bit 0, a
@@ -255,14 +257,14 @@
   xor a
   ldh ($90), a ;   v = 0
   ld a, 14     ;   y = 14
-  jr l8        ; }
+  jr update_bird_y
 .l9
-  cp 138       ; else if (y >= 138) {
-  jr c, l8
+  cp 138       ; } else if (y >= 138) {
+  jr c, update_bird_y
   xor a
   ldh ($90), a ;   v = 0
   ld a, 138    ;   y = 138
-.l8            ; }
+.update_bird_y ; }
   ld ($fe00), a
   ld ($fe04), a
   add a, 8
@@ -457,6 +459,20 @@
   ldh ($91), a
   ret
 
+.animate_sine_path
+  ldh a, ($92)
+  ld e, a
+  inc a
+  and $3f
+  ldh ($92), a  ; bird_anim_counter++
+  ld d, 0
+  ld hl, data_sine_path_bin
+  add hl, de    ; sine_path[a]
+  ld a, ($fe00) ; sprite[0].y
+  add a, (hl)
+  call update_bird_y
+  ret
+
 .cp_de_to_hl
   ld a, (de)
   ldi (hl), a
@@ -493,3 +509,4 @@
 <tile1.bin
 <tile2.bin
 <sprite.bin
+<sine_path.bin
