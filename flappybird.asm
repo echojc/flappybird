@@ -1,3 +1,16 @@
+.rst_00           ; pipe random lookup
+  nop             ; { 00 00 01 01 02 03 03 04 05 06 06 07 08 08 09 09 }
+  nop
+  ld bc, $0201
+  inc bc
+  inc bc
+  inc b
+  dec b
+  ld b, $06
+  rlca
+  ld ($0908), sp
+  add hl, bc
+
 .int_vblank
   push af
   ld a, 1
@@ -379,12 +392,8 @@
   call rng_next
   and $0f
   ld e, a
-  ld d, 0
-  push hl
-  ld hl, data_pipe_lookup_bin
-  add hl, de
-  ld a, (hl)   ; a ∈ [0..9]
-  pop hl
+  ld d, $00    ; de = (0x0000..0x0015) = pipe random lookup
+  ld a, (de)   ; a ∈ [0..9]
   ld de, $ffdf ; -0x21 = 1 row + 1 tile
   ld b, a      ; b = tiles to draw before gap
   cpl          ; a = -b - 1
@@ -513,4 +522,3 @@
 <tile2.bin
 <sprite.bin
 <sine_path.bin
-<pipe_lookup.bin
