@@ -385,26 +385,20 @@
   add hl, de
   ld a, (hl)   ; a ∈ [0..9]
   pop hl
-  ld d, a      ; d = tiles to draw before gap
-  ld a, 17
-  sub a, d
-  sub a, 8
-  ld b, a      ; b = tiles to draw after gap
-  ld c, 3      ; c = 1 xor 2 (flipper)
-  push bc
-
-  ld a, d      ;
   ld de, $ffdf ; -0x21 = 1 row + 1 tile
-  and a
+  ld b, a      ; b = tiles to draw before gap
+  cpl          ; a = -b - 1
+  add a, 10    ; a = 10 - b - 1 = 9 - b = (17 - 8) - b
+  ld c, a      ; c = tiles to draw after gap
+  cp 9         ; b + c == 9, so this is equivalent to checking b == 0
   jr z, l1     ; skip if tiles to draw before = 0
 
-  ld b, a      ; b = tiles to draw before gap
   ld a, 1      ; wall tiles = {1, 2}
 .l13
   ldi (hl), a
-  xor c
+  inc a
   ld (hl), a
-  xor c
+  dec a
   add hl, de
   dec b
   jr nz l13
@@ -441,18 +435,17 @@
   ld (hl), a
   add hl, de
 
-  pop bc       ; b = tiles to draw after gap, c = 1 xor 2 (flipper)
-  ld a, b
+  ld a, c
   and a
   ret z        ; return if tiles to draw after == 0
   ld a, 1
 .l14
   ldi (hl), a
-  xor c
+  inc a
   ld (hl), a
-  xor c
+  dec a
   add hl, de
-  dec b
+  dec c
   jr nz, l14
   ret
 
