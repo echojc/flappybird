@@ -193,17 +193,17 @@
 .handle_scroll
   ldh a, ($43) ; REG_SCX
   and $3f      ; switch (REG_SCX % 0x40)
-  cp $20
+  cp $28
   jr z, handle_scroll_draw
-  cp $3a
+  cp $09
   jr z, handle_scroll_score
   ret
 .handle_scroll_draw ; draw wall is expensive, we render on a frame without collision detection
   ldh a, ($e0)   ; next_col_offset
-  add a, $18     ; draw 3 walls ahead (= 1 behind)
+  add a, $10     ; draw 2 walls ahead
   and $1f
   ld l, a
-  ld h, $9a      ; hl = bottom left tile of 3 walls ahead
+  ld h, $9a      ; hl = bottom left tile of 2 walls ahead
   call draw_wall
   ret
 .handle_scroll_score
