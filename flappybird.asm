@@ -1,3 +1,13 @@
+.rst_00
+  ld e, a
+  add a, a
+  add a, e
+  ld e, a
+  ld d, $00
+  pop hl
+  add hl, de
+  jp hl
+
 .int_vblank
   push af
   ld a, 1
@@ -164,17 +174,15 @@
 
 .run_state
   ldh a, ($82) ; game_state
-  and a
-  jr nz, run_state_1
-  jp update_state_0
-.run_state_1
-  jp update_state_1
-.update_state_0 ; menu
+  rst $00
+  jp update_menu
+  jp update_play
+.update_menu
   call animate_sine_path
   call animate_wing
   call check_start_game
   ret
-.update_state_1 ; play
+.update_play
   call animate_wing
   call handle_score
   call handle_jump
