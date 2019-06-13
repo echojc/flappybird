@@ -91,6 +91,7 @@
   ldh ($80), a ; keys_held
   ldh ($81), a ; keys_down
   ldh ($82), a ; game_state
+  ldh ($83), a ; is_pause_scroll
   ldh ($90), a ; bird_v (positive = down)
   ldh ($92), a ; bird_menu_path_counter
   ldh ($c0), a ; score_bcd_lo
@@ -133,7 +134,7 @@
 
   ; copy dma to hram
   ld hl, $fff5
-  ld de, sprite_dma
+  ld de, sprite_dma!
   ld b, $0a
   call cp_de_to_hl
 
@@ -159,10 +160,10 @@
   jp halt   ; wait for next vblank before starting the game proper
 
 .loop
-  call $fff5   ; sprite_dma
+  call $fff5          ; sprite_dma!
+  call scroll_screen! ; disabled by ($83)
 
   call read_keys
-  call animate_bird
   call run_state
 .halt
   halt
@@ -182,7 +183,7 @@
   jp update_state_1
 .update_state_0 ; menu
   call animate_sine_path
-  call scroll_screen
+  call animate_wing
   ldh a, ($81) ; keys_down
   bit 0, a
   ret z        ; return if ((keys_down & KEY_A) == 0)
@@ -190,16 +191,19 @@
   ldh ($82), a ; game_state = 1
   ldh ($c2), a ; is_score_updated = true
   call render_score
-  call handle_jump ; start the game with a hop
+  call force_jump ; start the game with a hop
   ret
 .update_state_1 ; play
-  call scroll_screen
-  call handle_scroll
+  call handle_scroll!
+  call animate_wing
   call handle_jump
   call render_score
   ret
 
-.scroll_screen
+.scroll_screen!
+  ldh a, ($83) ; is_pause_scroll
+  and a
+  ret nz
   ldh a, ($43) ; REG_SCX
   inc a
   ldh ($43), a
@@ -212,7 +216,7 @@
   ldh ($e0), a ;   next_col_offset = (next_col_offset + 8) % 0x20
   ret          ; }
 
-.handle_scroll
+.handle_scroll!
   ldh a, ($43) ; REG_SCX
   and $3f      ; switch (REG_SCX % 0x40)
   cp $28
@@ -226,7 +230,7 @@
   and $1f
   ld l, a
   ld h, $9a      ; hl = bottom left tile of 2 walls ahead
-  call draw_wall
+  call draw_wall!
   ret
 .handle_scroll_score
   ldh a, ($e0)   ; next_col_offset
@@ -259,11 +263,12 @@
 
 .handle_jump
   ldh a, ($81) ; keys_down
-  bit 0, a
-  jr z, l10    ; if (keys_down & KEY_A) {
+  bit 0, a     ; if (keys_down & KEY_A) {
+  jr z, handle_gravity
+.force_jump
   ld a, $f3    ;   v = -13
   jr l11       ; } else {
-.l10
+.handle_gravity
   ldh a, ($90)
   inc a        ;   v += 1
 .l11           ; }
@@ -391,7 +396,7 @@
   ldh ($f0), a
   ret
 
-.draw_wall ; hl: target_col (9a20..9a3f)
+.draw_wall! ; hl: target_col (9a20..9a3f)
   call rng_next
   and $0f
   ld e, a
@@ -461,7 +466,7 @@
   jr nz, l14
   ret
 
-.animate_bird
+.animate_wing
   ldh a, ($91) ; bird_anim_counter
   dec a
   jr nz, l3
@@ -520,7 +525,7 @@
   jr nz, set_hl_wide
   ret
 
-.sprite_dma
+.sprite_dma!
   ld a, $c0 ; $c000[00..9f] is sprite data
   ldh ($46), a
   ld a, 40
