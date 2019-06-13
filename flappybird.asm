@@ -172,14 +172,7 @@
 .update_state_0 ; menu
   call animate_sine_path
   call animate_wing
-  ldh a, ($81) ; keys_down
-  bit 0, a
-  ret z        ; return if ((keys_down & KEY_A) == 0)
-  ld a, 1
-  ldh ($82), a ; game_state = 1
-  ldh ($c2), a ; is_score_updated = true
-  call render_score
-  call force_jump ; start the game with a hop
+  call check_start_game
   ret
 .update_state_1 ; play
   call animate_wing
@@ -203,6 +196,17 @@
   and $1f
   ldh ($e0), a ;   next_col_offset = (next_col_offset + 8) % 0x20
   ret          ; }
+
+.check_start_game
+  ldh a, ($81) ; keys_down
+  bit 0, a
+  ret z        ; return if ((keys_down & KEY_A) == 0)
+  ld a, 1
+  ldh ($82), a ; game_state = 1
+  ldh ($c2), a ; is_score_updated = true
+  call render_score
+  call force_jump ; start the game with a hop
+  ret
 
 .handle_score
   ldh a, ($43)   ; REG_SCX
