@@ -131,6 +131,12 @@
   ld b, $80
   call cp_de_to_hl
 
+  ; copy dma to hram
+  ld hl, $fff5
+  ld de, sprite_dma
+  ld b, $0a
+  call cp_de_to_hl
+
   ; init ground
   ld a, $0b ; ground sprite
   ld hl, $9a20
@@ -138,7 +144,7 @@
   call set_hl
 
   ; init sprites
-  ld hl, $fe00
+  ld hl, $c000
   ld de, data_sprite_bin
   ld b, $40
   call cp_de_to_hl
@@ -153,6 +159,8 @@
   jp halt   ; wait for next vblank before starting the game proper
 
 .loop
+  call $fff5   ; sprite_dma
+
   call read_keys
   call animate_bird
   call run_state
@@ -264,7 +272,7 @@
   sra b
   sra b
   sra b ; use v/8
-  ld a, ($fe00); sprite[0].y
+  ld a, ($c000); sprite[0].y
   add a, b     ; sprite[0].y + v/8
   cp 14
   jr nc, l9    ; if (y < 14) {
@@ -279,13 +287,13 @@
   ldh ($90), a ;   v = 0
   ld a, 138    ;   y = 138
 .update_bird_y ; }
-  ld ($fe00), a
-  ld ($fe04), a
+  ld ($c000), a
+  ld ($c004), a
   add a, 8
-  ld ($fe08), a
-  ld ($fe0c), a
+  ld ($c008), a
+  ld ($c00c), a
   sub a, 3
-  ld ($fe10), a
+  ld ($c010), a
   ret
 
 .render_score
@@ -295,7 +303,7 @@
   xor a
   ldh ($c2), a
   ld c, a
-  ld hl, $fe22 ; &sprite[8].tile
+  ld hl, $c022 ; &sprite[8].tile
   ld de, $0004
   ldh a, ($c1)
   ld b, a
@@ -457,10 +465,10 @@
   ldh a, ($91) ; bird_anim_counter
   dec a
   jr nz, l3
-  ld a, ($fe12) ; sprite[4].tile
+  ld a, ($c012) ; sprite[4].tile
   inc a         ; a ∈ [80..83]
   and $83       ; mask
-  ld ($fe12), a
+  ld ($c012), a
   ld a, 5
 .l3
   ldh ($91), a
@@ -475,7 +483,7 @@
   ld d, 0
   ld hl, data_sine_path_bin
   add hl, de    ; sine_path[a]
-  ld a, ($fe00) ; sprite[0].y
+  ld a, ($c000) ; sprite[0].y
   add a, (hl)
   call update_bird_y
   ret
@@ -510,6 +518,15 @@
   jr nz, set_hl_wide
   dec b
   jr nz, set_hl_wide
+  ret
+
+.sprite_dma
+  ld a, $c0 ; $c000[00..9f] is sprite data
+  ldh ($46), a
+  ld a, 40
+.l2
+  dec a
+  jr nz l2
   ret
 
 <tile0.bin
