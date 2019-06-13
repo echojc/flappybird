@@ -1,16 +1,3 @@
-.rst_00           ; pipe random lookup
-  nop             ; { 00 00 01 01 02 03 03 04 05 06 06 07 08 08 09 09 }
-  nop
-  ld bc, $0201
-  inc bc
-  inc bc
-  inc b
-  dec b
-  ld b, $06
-  rlca
-  ld ($0908), sp
-  add hl, bc
-
 .int_vblank
   push af
   ld a, 1
@@ -160,8 +147,9 @@
   jp halt   ; wait for next vblank before starting the game proper
 
 .loop
-  call $fff5          ; sprite_dma!
-  call scroll_screen! ; disabled by ($83)
+  call $fff5           ; sprite_dma!
+  call scroll_screen!  ; disabled by ($83)
+  call draw_next_pipe! ; if needed
 
   call read_keys
   call run_state
@@ -194,8 +182,8 @@
   call force_jump ; start the game with a hop
   ret
 .update_state_1 ; play
-  call handle_scroll!
   call animate_wing
+  call handle_score
   call handle_jump
   call render_score
   ret
@@ -216,29 +204,17 @@
   ldh ($e0), a ;   next_col_offset = (next_col_offset + 8) % 0x20
   ret          ; }
 
-.handle_scroll!
-  ldh a, ($43) ; REG_SCX
-  and $3f      ; switch (REG_SCX % 0x40)
-  cp $28
-  jr z, handle_scroll_draw
+.handle_score
+  ldh a, ($43)   ; REG_SCX
+  and $3f
   cp $09
-  jr z, handle_scroll_score
-  ret
-.handle_scroll_draw ; draw wall is expensive, we render on a frame without collision detection
-  ldh a, ($e0)   ; next_col_offset
-  add a, $10     ; draw 2 walls ahead
-  and $1f
-  ld l, a
-  ld h, $9a      ; hl = bottom left tile of 2 walls ahead
-  call draw_wall!
-  ret
-.handle_scroll_score
+  ret nz
   ldh a, ($e0)   ; next_col_offset
   ld l, a
-  ld h, $98      ; hl = top left tile of next wall
+  ld h, $98      ; hl = top left tile of next pipe
   ld a, (hl)
   and a
-  ret z          ; return if there is no wall (tile is blank)
+  ret z          ; return if there is no pipe (tile is blank)
   ldh a, ($c1)
   ld b, a
   ldh a, ($c0)
@@ -396,21 +372,41 @@
   ldh ($f0), a
   ret
 
-.draw_wall! ; hl: target_col (9a20..9a3f)
+.draw_next_pipe!
+  ldh a, ($82) ; game_state
+  cp 1
+  ret c
+
+  ldh a, ($43) ; REG_SCX
+  and $3f      ; switch (REG_SCX % 0x40)
+  cp $28
+  ret nz
+
   call rng_next
   and $0f
   ld e, a
-  ld d, $00    ; de = (0x0000..0x0015) = pipe random lookup
-  ld a, (de)   ; a ∈ [0..9]
-  ld de, $ffdf ; -0x21 = 1 row + 1 tile
-  ld b, a      ; b = tiles to draw before gap
+  ld d, $00
+  ld hl, data_pipe_rng_mapping_bin
+  add hl, de
+  ld a, (hl)   ; a ∈ [0..9]
+  ld b, a      ; b = tiles before gap
   cpl          ; a = -b - 1
   add a, 10    ; a = 10 - b - 1 = 9 - b = (17 - 8) - b
-  ld c, a      ; c = tiles to draw after gap
-  cp 9         ; b + c == 9, so this is equivalent to checking b == 0
-  jr z, l1     ; skip if tiles to draw before = 0
+  ld c, a      ; c = tiles after gap
 
-  ld a, 1      ; wall tiles = {1, 2}
+  ldh a, ($e0) ; next_col_offset
+  add a, $10   ; draw 2 pipes ahead
+  and $1f
+  ld l, a
+  ld h, $9a    ; hl = bottom left tile of pipe
+  ld de, $ffdf ; -0x21 = 1 row + 1 tile
+
+  ld a, b
+  and a
+  jr z, l1     ; skip if b (tiles before gap) == 0
+
+  ; bottom pipe
+  ld a, 1
 .l13
   ldi (hl), a
   inc a
@@ -418,43 +414,52 @@
   dec a
   add hl, de
   dec b
-  jr nz l13
+  jr nz, l13
 
-.l1            ; draw top of pipe
+  ; top of bottom pipe
+.l1
   ld a, 3
   ldi (hl), a
   inc a
   ld (hl), a
-  add hl, de
   inc a
+  add hl, de
   ldi (hl), a
   inc a
   ld (hl), a
   add hl, de
 
-  ld b, 4      ; clear the next 4 rows
+  ; 4-row gap
   xor a
-.l0
   ldi (hl), a
   ld (hl), a
   add hl, de
-  dec b
-  jr nz l0
-
-  ld a, 7      ; draw bottom of pipe
   ldi (hl), a
-  inc a
   ld (hl), a
   add hl, de
-  inc a
   ldi (hl), a
-  inc a
+  ld (hl), a
+  add hl, de
+  ldi (hl), a
   ld (hl), a
   add hl, de
 
+  ; bottom of top pipe
+  ld a, 7
+  ldi (hl), a
+  inc a
+  ld (hl), a
+  inc a
+  add hl, de
+  ldi (hl), a
+  inc a
+  ld (hl), a
+  add hl, de
+
+  ; top pipe
   ld a, c
   and a
-  ret z        ; return if tiles to draw after == 0
+  ret z        ; skip if c (tiles after gap) == 0
   ld a, 1
 .l14
   ldi (hl), a
@@ -539,3 +544,4 @@
 <tile2.bin
 <sprite.bin
 <sine_path.bin
+<pipe_rng_mapping.bin
