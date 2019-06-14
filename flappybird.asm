@@ -194,6 +194,7 @@
   rst $00
   jp update_menu
   jp update_play
+  jp update_debug
 .update_menu
   call animate_sine_path
   call animate_wing
@@ -204,7 +205,10 @@
   call handle_score
   call handle_jump
   call render_score
+  call check_debug
   ret
+.update_debug
+  call handle_keys_debug
 
 .scroll_screen!
   ldh a, ($83) ; is_pause_scroll
@@ -231,6 +235,15 @@
   ldh ($c2), a ; is_score_updated = true
   call render_score
   call force_jump ; start the game with a hop
+  ret
+
+.check_debug
+  ldh a, ($81) ; keys_down
+  cp $16       ; KEY_RIGHT | KEY_SELECT | KEY_B
+  ret nz
+  ld a, 2
+  ldh ($82), a ; game_state = 2
+  ldh ($83), a ; is_pause_scroll = true
   ret
 
 .handle_score
@@ -346,6 +359,48 @@
   xor $30
   ld (hl), a
   add hl, de
+  ret
+
+.handle_keys_debug
+  ldh a, ($81) ; keys_down
+  ld c, a
+  bit 6, c     ; KEY_UP
+  jr z, l20
+  ld a, ($c000)
+  dec a
+  call update_bird_y
+.l20
+  bit 7, c     ; KEY_DOWN
+  jr z, l21
+  ld a, ($c000)
+  inc a
+  call update_bird_y
+.l21
+  bit 4, c     ; KEY_RIGHT
+  jr z, l22
+  ldh a, ($43)
+  inc a
+  ldh ($43), a
+.l22
+  bit 5, c     ; KEY_LEFT
+  jr z, l23
+  ldh a, ($43)
+  dec a
+  ldh ($43), a
+.l23
+  bit 0, c     ; KEY_A
+  jr z, l24
+  ld a, ($c012); sprite[4].tile
+  inc a        ; a ∈ [80..83]
+  and $83      ; mask
+  ld ($c012), a
+.l24
+  bit 2, c
+  ret z
+  ld a, 1
+  ldh ($82), a ; game_state = 1
+  xor a
+  ldh ($83), a ; is_pause_scroll = false
   ret
 
 .read_keys
