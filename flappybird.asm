@@ -75,7 +75,6 @@
   ldh ($05), a ; REG_TIMA
   ldh ($06), a ; REG_TMA
   ldh ($07), a ; REG_TAC
-  ldh ($26), a ; REG_SND_CTL
 
   ; set up scxy
   ldh ($42), a ; REG_SCY
@@ -94,6 +93,7 @@
   ldh ($c0), a ; score_bcd_lo
   ldh ($c1), a ; score_bcd_hi
   ldh ($c2), a ; is_score_updated
+  ldh ($d1), a ; snd_bgm_offset
   ldh ($f0), a ; rng_state
   ldh ($f1), a ; rng_state_1
   ldh ($f2), a ; rng_state_2
@@ -102,6 +102,7 @@
   ld a, 5
   ldh ($91), a ; bird_anim_counter
   ld a, $08
+  ldh ($d0), a ; snd_counter
   ldh ($e0), a ; next_col_offset (cycles $00,$08,$10,$18)
 
   ; setup palettes
@@ -110,6 +111,15 @@
   ldh ($48), a ; REG_OBP0 3_2_1_0
   ld a, $c4
   ldh ($49), a ; REG_OBP1 3_0_1_0
+
+  ; setup sound
+  ;ld a, $80
+  xor a
+  ldh ($26), a ; REG_NR52
+  ;ld a, $ff
+  ;ldh ($25), a ; REG_NR51
+  ;ld a, $77
+  ;ldh ($24), a ; REG_NR50
 
   ; copy sprite tile data
   ld hl, $8000
@@ -147,6 +157,12 @@
   ld b, $40
   call cp_de_to_hl
 
+  ; init sound channel
+  ;ld a, $a2
+  ;ldh ($16), a ; REG_NR21
+  ;ld a, $f0
+  ;ldh ($17), a ; REG_NR22
+
   ; enable display
   ld a, $83
   ldh ($40), a
@@ -163,6 +179,7 @@
 
   call read_keys
   call run_state
+  ;call snd_play
 .halt
   halt
   ldh a, ($f4) ; is_vblank
@@ -551,9 +568,45 @@
   jr nz l2
   ret
 
+.snd_play
+  ldh a, ($d0) ; snd_counter
+  dec a
+  jr nz, l0
+
+  ldh a, ($d1) ; snd_bgm_offset
+  ld e, a
+  ld d, $00
+  ld hl, data_bgm_bin
+  add hl, de
+  inc a
+  ldh ($d1), a ; snd_bgm_offset++
+
+  ld a, (hl)   ; next note
+  and a
+  jr z, l7     ; rest if note is 0
+
+  add a, a
+  ld e, a
+  ld d, $00
+  ld hl, data_notes_bin
+  add hl, de
+  ldi a, (hl)  ; note_lo
+  ldh ($18), a
+  ld a, (hl)   ; note_hi
+  or $c0       ; SND_TRIGGER | SND_LENGTH
+  ldh ($19), a
+
+.l7
+  ld a, 8
+.l0
+  ldh ($d0), a
+  ret
+
 <tile0.bin
 <tile1.bin
 <tile2.bin
 <sprite.bin
 <sine_path.bin
 <pipe_rng_mapping.bin
+<notes.bin
+<bgm.bin
