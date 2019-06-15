@@ -94,6 +94,10 @@
   ldh ($c1), a ; score_bcd_hi
   ldh ($c2), a ; is_score_updated
   ldh ($d1), a ; snd_bgm_offset
+  ldh ($e1), a ; col_position[0]
+  ldh ($e2), a ; col_position[1]
+  ldh ($e3), a ; col_position[2]
+  ldh ($e4), a ; col_position[3]
   ldh ($f0), a ; rng_state
   ldh ($f1), a ; rng_state_1
   ldh ($f2), a ; rng_state_2
@@ -473,21 +477,30 @@
   ld hl, data_pipe_rng_mapping_bin
   add hl, de
   ld a, (hl)   ; a ∈ [0..9]
-  ld b, a      ; b = tiles before gap
-  cpl          ; a = -b - 1
-  add a, 10    ; a = 10 - b - 1 = 9 - b = (17 - 8) - b
-  ld c, a      ; c = tiles after gap
+  ld d, a      ; d = tiles before gap
+  cpl          ; a = -d - 1
+  add a, 10    ; a = 10 - d - 1 = 9 - d = (17 - 8) - d
+  ld e, a      ; e = tiles after gap
 
   ldh a, ($e0) ; next_col_offset
   add a, $10   ; draw 2 pipes ahead
   and $1f
   ld l, a
   ld h, $9a    ; hl = bottom left tile of pipe
-  ld de, $ffdf ; -0x21 = 1 row + 1 tile
 
-  ld a, b
+  srl a        ; save position of gap
+  srl a
+  srl a
+  add a, $e1
+  ld c, a      ; c = &col_position[i]
+  ld a, e
+  add a, 2
+  ldh (c), a   ; col_position[i] = tiles on top of gap
+
+  ld bc, $ffdf ; -0x21 = 1 row + 1 tile
+  ld a, d
   and a
-  jr z, l1     ; skip if b (tiles before gap) == 0
+  jr z, l1     ; skip if d (tiles before gap) == 0
 
   ; bottom pipe
   ld a, 1
@@ -496,8 +509,8 @@
   inc a
   ld (hl), a
   dec a
-  add hl, de
-  dec b
+  add hl, bc
+  dec d
   jr nz, l13
 
   ; top of bottom pipe
@@ -507,26 +520,26 @@
   inc a
   ld (hl), a
   inc a
-  add hl, de
+  add hl, bc
   ldi (hl), a
   inc a
   ld (hl), a
-  add hl, de
+  add hl, bc
 
   ; 4-row gap
   xor a
   ldi (hl), a
   ld (hl), a
-  add hl, de
+  add hl, bc
   ldi (hl), a
   ld (hl), a
-  add hl, de
+  add hl, bc
   ldi (hl), a
   ld (hl), a
-  add hl, de
+  add hl, bc
   ldi (hl), a
   ld (hl), a
-  add hl, de
+  add hl, bc
 
   ; bottom of top pipe
   ld a, 7
@@ -534,24 +547,24 @@
   inc a
   ld (hl), a
   inc a
-  add hl, de
+  add hl, bc
   ldi (hl), a
   inc a
   ld (hl), a
-  add hl, de
+  add hl, bc
 
   ; top pipe
-  ld a, c
+  ld a, e
   and a
-  ret z        ; skip if c (tiles after gap) == 0
+  ret z        ; skip if e (tiles after gap) == 0
   ld a, 1
 .l14
   ldi (hl), a
   inc a
   ld (hl), a
   dec a
-  add hl, de
-  dec c
+  add hl, bc
+  dec e
   jr nz, l14
   ret
 
