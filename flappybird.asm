@@ -245,7 +245,7 @@
 
 .check_debug
   ldh a, ($81) ; keys_down
-  cp $16       ; KEY_RIGHT | KEY_SELECT | KEY_B
+  cp $04       ; KEY_SELECT
   ret nz
   ld a, 2
   ldh ($82), a ; game_state = 2
