@@ -1,7 +1,5 @@
 .rst_00
-  ld e, a
   add a, a
-  add a, e
   ld e, a
   ld d, $00
   pop hl
@@ -174,7 +172,7 @@
   ld a, $11 ; INT_KEYS, INT_VBLANK
   ldh ($ff), a
   ei
-  jp halt   ; wait for next vblank before starting the game proper
+  jr halt   ; wait for next vblank before starting the game proper
 
 .loop
   call $fff5           ; sprite_dma!
@@ -191,14 +189,14 @@
   jr z, halt
   xor a
   ldh ($f4), a ; is_vblank
-  jp loop
+  jr loop
 
 .run_state
   ldh a, ($82) ; game_state
   rst $00
-  jp update_menu
-  jp update_play
-  jp update_debug
+  jr update_menu
+  jr update_play
+  jr update_debug
 .update_menu
   call animate_sine_path
   call animate_wing
