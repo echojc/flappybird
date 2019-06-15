@@ -213,6 +213,7 @@
   ret
 .update_debug
   call handle_keys_debug
+  ret
 
 .scroll_screen!
   ldh a, ($83) ; is_pause_scroll
