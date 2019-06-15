@@ -96,6 +96,7 @@
   ldh ($e2), a ; col_position[1]
   ldh ($e3), a ; col_position[2]
   ldh ($e4), a ; col_position[3]
+  ldh ($e5), a ; is_collided
   ldh ($f0), a ; rng_state
   ldh ($f1), a ; rng_state_1
   ldh ($f2), a ; rng_state_2
@@ -207,10 +208,12 @@
   call handle_score
   call handle_jump
   call render_score
+  call handle_collision
   call check_debug
   ret
 .update_debug
   call handle_keys_debug
+  call handle_collision
   ret
 
 .scroll_screen!
@@ -364,6 +367,81 @@
   add hl, de
   ret
 
+.handle_collision
+  ldh a, ($43)  ; REG_SCX
+  add a, 6      ; map $3a -> $00 (mod $40)
+  and $3f
+  cp $1d
+  jp nc, handle_collision_reset ; if REG_SCX ∉ [$3a..$16]
+
+  ld b, a
+  ldh a, ($e0)  ; next_col_offset
+  ld l, a
+  ld h, $98     ; hl = top left tile of next pipe
+  ld a, (hl)
+  and a
+  jp z, handle_collision_reset  ; if there is no pipe (tile is blank)
+
+  ldh a, ($e0)  ; next_col_offset
+  srl a
+  srl a
+  srl a
+  add a, $e1
+  ld c, a
+  ldh a, (c)    ; col_position[next_col_offset >> 3]
+  rlca
+  rlca
+  rlca          ; base_y = col_position[next_col_offset >> 3] << 3
+  ld c, a       ; base_y
+
+  ld a, b       ; collision check column
+  and a
+  jr z, handle_collision_edge_1
+  cp $01
+  jr z, handle_collision_edge_2
+  sub a, 2      ; [$3c..$16] mapped to [$00..$1c]
+  add a, a
+  ld e, a
+  ld d, $00
+  ld hl, data_collision_bin
+  add hl, de    ; hl = &{ u8 lower_inc, u8 upper_exc }
+
+  ld a, ($c000) ; bird_y
+  sub a, c      ; bird_y - base_y
+  cp (hl)
+  jr c, handle_collision_set
+  inc hl
+  cp (hl)
+  jr nc, handle_collision_set
+  jr handle_collision_reset
+.handle_collision_edge_1 ; [2..3,2a..2b]
+  ld a, ($c000) ; bird_y
+  sub a, c      ; bird_y - base_y
+  sub a, $02    ; check case [2..3]
+  cp 2
+  jr c, handle_collision_set
+  sub a, $28    ; check case [2a..2b]
+  cp 2
+  jr c, handle_collision_set
+  jr handle_collision_reset
+.handle_collision_edge_2 ; [0..4,28-2d]
+  ld a, ($c000) ; bird_y
+  sub a, c      ; bird_y - base_y
+  cp 5          ; check case [0..4]
+  jr c, handle_collision_set
+  sub a, $28    ; check case [28..2d]
+  cp 6
+  jr c, handle_collision_set
+  jr handle_collision_reset
+.handle_collision_set
+  ld a, 1
+  ldh ($e5), a  ; is_collided = true
+  ret
+.handle_collision_reset
+  xor a
+  ldh ($e5), a  ; is_collided = false
+  ret
+
 .handle_keys_debug
   ldh a, ($81) ; keys_down
   ld c, a
@@ -491,10 +569,10 @@
   srl a
   srl a
   add a, $e1
-  ld c, a      ; c = &col_position[i]
+  ld c, a      ; c = &col_position[next_col_offset >> 3]
   ld a, e
   add a, 2
-  ldh (c), a   ; col_position[i] = tiles on top of gap
+  ldh (c), a   ; col_position[next_col_offset >> 3] = tiles on top of gap
 
   ld bc, $ffdf ; -0x21 = 1 row + 1 tile
   ld a, d
@@ -675,5 +753,6 @@
 <sprite.bin
 <sine_path.bin
 <pipe_rng_mapping.bin
+<collision.bin
 <notes.bin
 <bgm.bin
