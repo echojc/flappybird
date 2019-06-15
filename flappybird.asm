@@ -139,7 +139,7 @@
   ; copy shared tile data
   ld hl, $8800
   ld de, data_tile2_bin
-  ld b, $80
+  ld b, $90
   call cp_de_to_hl
 
   ; copy dma to hram
@@ -198,6 +198,7 @@
   jr update_menu
   jr update_play
   jr update_debug
+  jr update_gameover
 .update_menu
   call animate_sine_path
   call animate_wing
@@ -208,12 +209,16 @@
   call handle_score
   call handle_jump
   call render_score
+  call check_collision
   call handle_collision
   call check_debug
   ret
 .update_debug
   call handle_keys_debug
-  call handle_collision
+  call check_collision
+  ret
+.update_gameover
+  call handle_gravity
   ret
 
 .scroll_screen!
@@ -367,12 +372,12 @@
   add hl, de
   ret
 
-.handle_collision
+.check_collision
   ldh a, ($43)  ; REG_SCX
   add a, 6      ; map $3a -> $00 (mod $40)
   and $3f
   cp $1d
-  jp nc, handle_collision_reset ; if REG_SCX ∉ [$3a..$16]
+  jp nc, check_collision_reset ; if REG_SCX ∉ [$3a..$16]
 
   ld b, a
   ldh a, ($e0)  ; next_col_offset
@@ -380,7 +385,7 @@
   ld h, $98     ; hl = top left tile of next pipe
   ld a, (hl)
   and a
-  jp z, handle_collision_reset  ; if there is no pipe (tile is blank)
+  jp z, check_collision_reset  ; if there is no pipe (tile is blank)
 
   ldh a, ($e0)  ; next_col_offset
   srl a
@@ -396,9 +401,9 @@
 
   ld a, b       ; collision check column
   and a
-  jr z, handle_collision_edge_1
+  jr z, check_collision_edge_1
   cp $01
-  jr z, handle_collision_edge_2
+  jr z, check_collision_edge_2
   sub a, 2      ; [$3c..$16] mapped to [$00..$1c]
   add a, a
   ld e, a
@@ -409,37 +414,75 @@
   ld a, ($c000) ; bird_y
   sub a, c      ; bird_y - base_y
   cp (hl)
-  jr c, handle_collision_set
+  jr c, check_collision_set
   inc hl
   cp (hl)
-  jr nc, handle_collision_set
-  jr handle_collision_reset
-.handle_collision_edge_1 ; [2..3,2a..2b]
+  jr nc, check_collision_set
+  jr check_collision_reset
+.check_collision_edge_1 ; [2..3,2a..2b]
   ld a, ($c000) ; bird_y
   sub a, c      ; bird_y - base_y
   sub a, $02    ; check case [2..3]
   cp 2
-  jr c, handle_collision_set
+  jr c, check_collision_set
   sub a, $28    ; check case [2a..2b]
   cp 2
-  jr c, handle_collision_set
-  jr handle_collision_reset
-.handle_collision_edge_2 ; [0..4,28-2d]
+  jr c, check_collision_set
+  jr check_collision_reset
+.check_collision_edge_2 ; [0..4,28-2d]
   ld a, ($c000) ; bird_y
   sub a, c      ; bird_y - base_y
   cp 5          ; check case [0..4]
-  jr c, handle_collision_set
+  jr c, check_collision_set
   sub a, $28    ; check case [28..2d]
   cp 6
-  jr c, handle_collision_set
-  jr handle_collision_reset
-.handle_collision_set
+  jr c, check_collision_set
+  jr check_collision_reset
+.check_collision_set
   ld a, 1
   ldh ($e5), a  ; is_collided = true
   ret
-.handle_collision_reset
+.check_collision_reset
   xor a
   ldh ($e5), a  ; is_collided = false
+  ret
+
+.handle_collision
+  ldh a, ($e5)  ; is_collided
+  and a
+  ret z
+  ld a, 3
+  ldh ($82), a ; game_state = 3
+  ldh ($83), a ; is_pause_scroll = true
+  call force_jump
+
+  ld hl, $c002 ; flip bird sprite
+  ld a, $86
+  ldi (hl), a
+  ld a, $40
+  ldi (hl), a
+  inc l
+  inc l
+  ld a, $87
+  ldi (hl), a
+  ld a, $40
+  ldi (hl), a
+  inc l
+  inc l
+  ld a, $84
+  ldi (hl), a
+  ld a, $50
+  ldi (hl), a
+  inc l
+  inc l
+  ld a, $88    ; and set to dead face
+  ldi (hl), a
+  ld a, $50
+  ldi (hl), a
+  inc l
+  inc l
+  inc l
+  ld (hl), a
   ret
 
 .handle_keys_debug
